@@ -84,12 +84,28 @@ export class EmailService {
         </body>
         </html>`,
     });
-    await this.prisma.verification.create({
-      data: {
-        email: customerEmail,
-        verifyCode: generatedValue,
+    let user = await this.prisma.verification.findUnique({
+      where: {
+        email: senderEmail,
       },
     });
+    if (!user) {
+      await this.prisma.verification.create({
+        data: {
+          email: customerEmail,
+          verifyCode: generatedValue,
+        },
+      });
+    } else {
+      await this.prisma.verification.update({
+        data: {
+          verifyCode: generatedValue,
+        },
+        where: {
+          email: customerEmail,
+        },
+      });
+    }
     return generatedValue;
   }
   async validate(account: string, verification: string) {

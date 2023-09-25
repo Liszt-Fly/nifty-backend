@@ -17,6 +17,7 @@ model user {
 }
 
 model verification {
-  email      String @unique
-  verifyCode String
+  email       String   @unique
+  verifyCode  String
+  createdTime DateTime @default(now())
 }
