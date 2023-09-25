@@ -1,14 +1,24 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { AppService } from './app.service';
 import { LoginForm } from './dto/LoginForm';
+import { LoginService } from './login/login.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly loginService: LoginService) {}
 
   @Post('api')
-  getHello(@Body() loginForm: LoginForm): string {
-    console.log(loginForm);
-    return this.appService.getHello();
+  async login(@Body() loginForm: LoginForm): Promise<Boolean> {
+    let res = await this.loginService.Login(
+      loginForm.email,
+      loginForm.password,
+    );
+    if (res) return true;
+    return false;
+  }
+  @Post('register')
+  async register(@Body() registerForm: LoginForm): Promise<String> {
+    await this.loginService.Register(registerForm.email, registerForm.password);
+    console.log('ok');
+    return 'success';
   }
 }
