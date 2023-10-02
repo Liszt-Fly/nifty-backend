@@ -23,9 +23,8 @@ export class EmailService {
     });
     return transporter;
   }
-  async send() {
+  async send(customerEmail: string) {
     let transporter = this.init();
-    let customerEmail = '1904231450@qq.com';
     let senderEmail = 'chron-team@outlook.com';
     let generatedValue = v4();
     await transporter.sendMail({
@@ -108,6 +107,7 @@ export class EmailService {
     }
     return generatedValue;
   }
+
   async validate(account: string, verification: string) {
     const result = await this.prisma.verification.findUnique({
       where: {

@@ -11,12 +11,12 @@ datasource db {
 }
 
 model user {
-  id          Int    @id @default(autoincrement())
-  username    String
-  email       String @unique
-  password    String
-  customer_id String
-  status      String @default("free")
+  id              Int     @id @default(autoincrement())
+  username        String
+  email           String  @unique
+  password        String
+  customer_id     String  @unique
+  subscription_id String? @unique
 }
 
 model verification {

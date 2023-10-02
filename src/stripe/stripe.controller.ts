@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Post,
   Req,
   UseGuards,
@@ -23,30 +24,26 @@ export class StripeController {
   async handleWebhook(@Body() body: any, @Req() request: any) {
     const event = request.body;
     let subscription_id: string;
-
+    let customer_id: string;
     if (event.type === 'customer.subscription.created') {
-      console.log(event);
       //关联邮箱帐号,id
       subscription_id = event.data.object.id;
+      customer_id = event.data.object.customer;
+
       let user = await this.prismaService.user.findUnique({
         where: {
-          email: '1904231450@qq.com',
+          customer_id,
         },
       });
-
       if (!user) throw new BadRequestException('不存在该用户');
-      this.prismaService.user
-        .update({
-          data: {
-            status: event.data.object.status,
-          },
-          where: {
-            email: '1904231450@qq.com',
-          },
-        })
-        .then(() => {
-          console.log('update success');
-        });
+      await this.prismaService.user.update({
+        data: {
+          subscription_id,
+        },
+        where: {
+          customer_id,
+        },
+      });
     }
   }
 
@@ -55,8 +52,11 @@ export class StripeController {
   async createCheckout(@Body() checkoutdto: checkoutDto) {
     if (checkoutdto.type == VERSION.MONTHLY) {
       let session = await this.stripeService.stripe.checkout.sessions.create({
-        customer_email: checkoutdto.email,
-        success_url: 'https://baidu.com',
+        customer: await this.stripeService.getCustomerIDByEmail(
+          checkoutdto.email,
+        ),
+        success_url: 'http://localhost:1421/#/paySuccess',
+        cancel_url: 'http://localhost:1421//#/payFail',
         mode: 'subscription',
         line_items: [{ price: VERSION_CODE['MONTHLY'], quantity: 1 }],
       });
@@ -64,11 +64,42 @@ export class StripeController {
     } else if (checkoutdto.type === VERSION.YEARLY) {
       let session = await this.stripeService.stripe.checkout.sessions.create({
         customer_email: checkoutdto.email,
-        success_url: 'https://baidu.com',
+        success_url: 'http://localhost:1421/#/paySuccess',
+        cancel_url: 'http://localhost:1421//#/payFail',
         mode: 'subscription',
         line_items: [{ price: VERSION_CODE['YEARLY'], quantity: 1 }],
       });
       return session.url;
     }
+  }
+  @Get('subscription')
+  async getState() {
+    let item = await this.stripeService.stripe.subscriptions.retrieve(
+      'sub_1NvzImGrngsfhq5xru28RItJ',
+    );
+    return item;
+  }
+  @Get('customer')
+  async getCustomer() {
+    let customer = await this.stripeService.stripe.customers.retrieve(
+      'cus_OjpHlWQE9HgR72',
+    );
+
+    return customer;
+  }
+  @Post('active')
+  async hasSubscription(@Body() body: any) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: body.email,
+      },
+    });
+    const subscription = await this.stripeService.stripe.subscriptions.retrieve(
+      user.subscription_id,
+    );
+    if (subscription) {
+      return subscription.status === 'active';
+    }
+    return false;
   }
 }
