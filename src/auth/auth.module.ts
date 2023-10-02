@@ -18,7 +18,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
       useFactory: (config: ConfigService) => {
         return {
           secret: config.get('TOKEN_SECRET'),
-          signOptions: { expiresIn: '1m' },
+          signOptions: { expiresIn: '30d' },
         };
       },
     }),
